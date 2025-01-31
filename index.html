@@ -3,13 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Recognition App</title>
+  <title>Voice Assistant with OpenAI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 10px;
+      background: #f4f4f4;
+      border: 1px solid #ccc;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #startButton {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <h1>Alexa-like Voice Recognition App</h1>
-  
+  <h1>Voice Assistant App</h1>
   <button id="startButton">Start Listening</button>
-  <div id="output"></div>
+  <div id="output">Waiting for your voice...</div>
 
   <script>
     // Get elements from the DOM
@@ -21,60 +41,70 @@
     const recognition = new SpeechRecognition();
 
     recognition.lang = 'en-US'; // Set language to English
-    recognition.continuous = true; // Continuous listening (keep listening)
+    recognition.continuous = true; // Continuous listening
     recognition.interimResults = false; // Only final results
 
     // Start listening when the button is clicked
     startButton.addEventListener('click', () => {
       recognition.start();
-      output.innerHTML = "Listening..."; // Display message
+      output.innerHTML = "Listening...";
+      startButton.disabled = true; // Disable the button during listening
     });
 
     // When speech is recognized
     recognition.onresult = (event) => {
       const transcript = event.results[event.results.length - 1][0].transcript;
-      output.innerHTML = `You said: ${transcript}`; // Display the recognized text
+      output.innerHTML = `You said: ${transcript}`; // Display the recognized speech
 
-      // Send recognized text to DeepSeek
-      sendToDeepSeek(transcript);
+      // Send the recognized speech to OpenAI
+      sendToOpenAI(transcript);
     };
 
     // Handle errors
     recognition.onerror = (event) => {
       console.error("Error occurred: ", event.error);
-      output.innerHTML = "Sorry, an error occurred.";
+      output.innerHTML = "Sorry, an error occurred. Please try again.";
     };
 
-    // Automatically restart the recognition when it's stopped
+    // Restart recognition when it ends
     recognition.onend = () => {
+      startButton.disabled = false; // Enable the button again
       recognition.start();
     };
 
-    // Function to send the text to DeepSeek API
-    function sendToDeepSeek(query) {
-      fetch('https://api.deepseek.com/query', {
+    // Send the recognized text to OpenAI
+    function sendToOpenAI(query) {
+      const apiKey = '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';  // Replace with your OpenAI API key
+
+      fetch('https://api.openai.com/v1/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiey}`,
         },
-        body: JSON.stringify({ query: query }),
+        body: JSON.stringify({
+          model: 'text-davinci-003', // You can use a different model if needed
+          prompt: query,
+          max_tokens: 150,
+          temperature: 0.7,
+        }),
       })
         .then(response => response.json())
         .then(data => {
-          const responseText = data.response;
-          speak(responseText); // Speak the response from DeepSeek
+          const responseText = data.choices[0].text.trim(); // Get the response from OpenAI
+          speak(responseText); // Use TTS to speak the response
         })
         .catch(error => {
-          console.error("Error communicating with DeepSeek:", error);
-          output.innerHTML = "Sorry, couldn't connect to DeepSeek.";
+          console.error("Error connecting to OpenAI:", error);
+          output.innerHTML = "Sorry, couldn't connect to OpenAI.";
         });
     }
 
     // Function to speak the response
     function speak(text) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US'; // Set language to English
-      speechSynthesis.speak(utterance); // Speak the text out loud
+      utterance.lang = 'en-US';
+      speechSynthesis.speak(utterance); // Speak the response aloud
     }
   </script>
 </body>
