@@ -1,41 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Recognition</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Recognition App</title>
 </head>
 <body>
-    <h1>Voice Recognition Example</h1>
-    <button id="startBtn">Start Listening</button>
-    <p id="result">Result will appear here...</p>
+  <h1>Alexa-like Voice Recognition App</h1>
+  
+  <button id="startButton">Start Listening</button>
+  <div id="output"></div>
 
-    <script>
-        const startBtn = document.getElementById('startBtn');
-        const resultElement = document.getElementById('result');
+  <script>
+    // Get elements from the DOM
+    const startButton = document.getElementById('startButton');
+    const output = document.getElementById('output');
 
-        // Initialize SpeechRecognition
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US'; // Set language to English
-        recognition.interimResults = false; // Set to false to show only final result
+    // Check if the browser supports SpeechRecognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
 
-        // When speech is recognized
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript; // Get recognized text
-            resultElement.textContent = `You said: ${transcript}`;
-        };
+    recognition.lang = 'en-US'; // Set language to English
+    recognition.continuous = true; // Continuous listening (keep listening)
+    recognition.interimResults = false; // Only final results
 
-        // Start listening when the button is clicked
-        startBtn.onclick = () => {
-            recognition.start();
-            resultElement.textContent = "Listening...";
-        };
+    // Start listening when the button is clicked
+    startButton.addEventListener('click', () => {
+      recognition.start();
+      output.innerHTML = "Listening..."; // Display message
+    });
 
-        // Handle errors
-        recognition.onerror = (event) => {
-            console.error("Error occurred in speech recognition:", event.error);
-            resultElement.textContent = "Sorry, an error occurred.";
-        };
-    </script>
+    // When speech is recognized
+    recognition.onresult = (event) => {
+      const transcript = event.results[event.results.length - 1][0].transcript;
+      output.innerHTML = `You said: ${transcript}`; // Display the recognized text
+
+      // Send recognized text to DeepSeek
+      sendToDeepSeek(transcript);
+    };
+
+    // Handle errors
+    recognition.onerror = (event) => {
+      console.error("Error occurred: ", event.error);
+      output.innerHTML = "Sorry, an error occurred.";
+    };
+
+    // Automatically restart the recognition when it's stopped
+    recognition.onend = () => {
+      recognition.start();
+    };
+
+    // Function to send the text to DeepSeek API
+    function sendToDeepSeek(query) {
+      fetch('https://api.deepseek.com/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: query }),
+      })
+        .then(response => response.json())
+        .then(data => {
+          const responseText = data.response;
+          speak(responseText); // Speak the response from DeepSeek
+        })
+        .catch(error => {
+          console.error("Error communicating with DeepSeek:", error);
+          output.innerHTML = "Sorry, couldn't connect to DeepSeek.";
+        });
+    }
+
+    // Function to speak the response
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US'; // Set language to English
+      speechSynthesis.speak(utterance); // Speak the text out loud
+    }
+  </script>
 </body>
 </html>
