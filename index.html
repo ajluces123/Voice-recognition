@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Recognition</title>
+</head>
+<body>
+    <h1>Voice Recognition Example</h1>
+    <button id="startBtn">Start Listening</button>
+    <p id="result">Result will appear here...</p>
+
+    <script>
+        const startBtn = document.getElementById('startBtn');
+        const resultElement = document.getElementById('result');
+
+        // Initialize SpeechRecognition
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-US'; // Set language to English
+        recognition.interimResults = false; // Set to false to show only final result
+
+        // When speech is recognized
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript; // Get recognized text
+            resultElement.textContent = `You said: ${transcript}`;
+        };
+
+        // Start listening when the button is clicked
+        startBtn.onclick = () => {
+            recognition.start();
+            resultElement.textContent = "Listening...";
+        };
+
+        // Handle errors
+        recognition.onerror = (event) => {
+            console.error("Error occurred in speech recognition:", event.error);
+            resultElement.textContent = "Sorry, an error occurred.";
+        };
+    </script>
+</body>
+</html>
